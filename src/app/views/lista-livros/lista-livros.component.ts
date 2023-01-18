@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { debounceTime, filter, map, Subscription, switchMap } from 'rxjs';
+import { catchError, debounceTime, filter, map, Subscription, switchMap, throwError } from 'rxjs';
 import { Item, Livro } from 'src/app/models/interfaces';
 import { LivroVolumeInfo } from 'src/app/models/livroVolumeInfo';
 import { LivroService } from 'src/app/service/livro.service';
@@ -12,6 +12,7 @@ import { LivroService } from 'src/app/service/livro.service';
 })
 export class ListaLivrosComponent /*implements OnDestroy*/ {  
   
+  mensagemErro: string = ''
   //O FormControl() irá nos retornar um Observable, então utilizaremos o método valueChanges 
   //para o campoBusca na variável livrosEncontrados$. 
   //Esse método retorna um Observable que vai emitir um evento cada vez que houver 
@@ -23,7 +24,21 @@ export class ListaLivrosComponent /*implements OnDestroy*/ {
     debounceTime(300),
     filter((valorDigitado) => valorDigitado.length >= 3),
     switchMap((valorDigitado) => this.service.buscar(valorDigitado)),
-    map(items => this.livrosResultadoParaLivros(items))
+    map(items => this.livrosResultadoParaLivros(items)),
+    catchError(erro => {
+      console.log(erro)
+      return throwError(() => new Error(this.mensagemErro = 'Ops, ocorreu um erro. Recarregue a aplicação!'))
+    })
+
+    /*//Forma alternativa de tratar os erros, fazendo uso do observable EMPTY
+    //Ele cria um Observable simples que não emite nenhum item para o Observer e que emite imediatamente 
+    //uma notificação de "Complete" para encerrar o seu ciclo de vida. Por esse motivo é necessário 
+    //recarregar a aplicação quando esse erro ocorre. Vimos que os métodos error 
+    //e complete encerram o ciclo de vida do Observable. O mesmo ocorre com o catchError.
+    catchError(() => {
+      this.mensagemErro = 'Ops, ocorreu um erro. Recarregue a aplicação!'
+      return EMPTY
+    })*/
   )   
     
   // listaLivros: LivroVolumeInfo[]

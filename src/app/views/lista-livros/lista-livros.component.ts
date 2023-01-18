@@ -1,7 +1,7 @@
 import { Component, OnDestroy } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { catchError, debounceTime, filter, map, Subscription, switchMap, throwError } from 'rxjs';
-import { Item, Livro } from 'src/app/models/interfaces';
+import { catchError, debounceTime, filter, map, of, Subscription, switchMap, throwError } from 'rxjs';
+import { Item, Livro, LivrosResultado } from 'src/app/models/interfaces';
 import { LivroVolumeInfo } from 'src/app/models/livroVolumeInfo';
 import { LivroService } from 'src/app/service/livro.service';
 
@@ -10,8 +10,9 @@ import { LivroService } from 'src/app/service/livro.service';
   templateUrl: './lista-livros.component.html',
   styleUrls: ['./lista-livros.component.css']
 })
-export class ListaLivrosComponent /*implements OnDestroy*/ {  
-  
+export class ListaLivrosComponent /*implements OnDestroy*/ {
+
+  livrosResultado: LivrosResultado;  
   mensagemErro: string = ''
   //O FormControl() irá nos retornar um Observable, então utilizaremos o método valueChanges 
   //para o campoBusca na variável livrosEncontrados$. 
@@ -24,11 +25,14 @@ export class ListaLivrosComponent /*implements OnDestroy*/ {
     debounceTime(300),
     filter((valorDigitado) => valorDigitado.length >= 3),
     switchMap((valorDigitado) => this.service.buscar(valorDigitado)),
+    map(resultado => resultado.items ?? []), //retorna um array vazio caso a api não retorne correspondência para o termo digitado
     map(items => this.livrosResultadoParaLivros(items)),
     catchError(erro => {
       console.log(erro)
       return throwError(() => new Error(this.mensagemErro = 'Ops, ocorreu um erro. Recarregue a aplicação!'))
     })
+
+    
 
     /*//Forma alternativa de tratar os erros, fazendo uso do observable EMPTY
     //Ele cria um Observable simples que não emite nenhum item para o Observer e que emite imediatamente 
@@ -39,7 +43,19 @@ export class ListaLivrosComponent /*implements OnDestroy*/ {
       this.mensagemErro = 'Ops, ocorreu um erro. Recarregue a aplicação!'
       return EMPTY
     })*/
-  )   
+  )
+
+  totalDeLivros$ = this.campoBusca.valueChanges
+    .pipe(
+        debounceTime(300),
+        filter((valorDigitado) => valorDigitado.length >= 3),
+        switchMap((valorDigitado) => this.service.buscar(valorDigitado)),
+        map(resultado => this.livrosResultado = resultado),
+        catchError(erro => {
+            console.log(erro)
+            return of()
+        })
+    )
     
   // listaLivros: LivroVolumeInfo[]
   // subscription: Subscription

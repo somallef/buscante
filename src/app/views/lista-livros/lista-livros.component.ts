@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { map, Subscription, switchMap } from 'rxjs';
+import { debounceTime, filter, map, Subscription, switchMap } from 'rxjs';
 import { Item, Livro } from 'src/app/models/interfaces';
 import { LivroVolumeInfo } from 'src/app/models/livroVolumeInfo';
 import { LivroService } from 'src/app/service/livro.service';
@@ -20,6 +20,8 @@ export class ListaLivrosComponent /*implements OnDestroy*/ {
   //SwitchMap: A ideia desse operador é trocar os valores e passar ao servidor só o último valor (B), 
   //desconsiderando os valores anteriores (A).
   livrosEncontrados$ = this.campoBusca.valueChanges.pipe(
+    debounceTime(300),
+    filter((valorDigitado) => valorDigitado.length >= 3),
     switchMap((valorDigitado) => this.service.buscar(valorDigitado)),
     map(items => this.livrosResultadoParaLivros(items))
   )   
